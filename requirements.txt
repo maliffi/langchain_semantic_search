@@ -1,16 +1,24 @@
-# Core dependencies
+# --Core dependencies
 python-dotenv==1.0.0
 pytest==7.3.1
 
 # Logging
 loguru==0.7.0
 
-# Development dependencies
-black==23.3.0    # Code formatter - enforces consistent code style
-isort==5.12.0    # Import formatter - sorts and organizes import statements
-pre-commit==3.3.2  # Git hook manager - automates checks before commits
+# --Development dependencies
+# Code formatter - enforces consistent code style
+black==23.3.0
+# Import formatter - sorts and organizes import statements
+isort==5.12.0
+# Git hook manager - automates checks before commits
+pre-commit==3.3.2
 
-# Langchain dependencies
-langchain==0.3.21
-langchain-community==0.3.20
-langchain-ollama==0.2.3
+# --Langchain dependencies
+langchain~=0.3.21
+langchain-community~=0.3.20
+langchain-ollama~=0.2.3
+langchain-qdrant~=0.2.0
+
+# --Other dependencies
+# For reading, manipulating, and writing PDF files.
+pypdf~=5.4.0
