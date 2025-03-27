@@ -1,0 +1,16 @@
+# Core dependencies
+python-dotenv==1.0.0
+pytest==7.3.1
+
+# Logging
+loguru==0.7.0
+
+# Development dependencies
+black==23.3.0    # Code formatter - enforces consistent code style
+isort==5.12.0    # Import formatter - sorts and organizes import statements
+pre-commit==3.3.2  # Git hook manager - automates checks before commits
+
+# Langchain dependencies
+langchain==0.3.21
+langchain-community==0.3.20
+langchain-ollama==0.2.3
