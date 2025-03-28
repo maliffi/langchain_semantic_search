@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.documents import Document
+from langchain_core.runnables import Runnable, chain
 from langchain_core.vectorstores import VectorStore
 from langchain_ollama import OllamaEmbeddings
 from langchain_qdrant import QdrantVectorStore
@@ -22,6 +23,8 @@ load_dotenv()
 
 # Initialize logger
 logger = get_logger("main")
+
+global_vector_store: VectorStore = None
 
 
 def get_vector_store(embeddings: OllamaEmbeddings, collection_name: str) -> VectorStore:
@@ -52,6 +55,7 @@ def get_vector_store(embeddings: OllamaEmbeddings, collection_name: str) -> Vect
     vector_store = QdrantVectorStore(
         client=client, collection_name=collection_name, embedding=embeddings
     )
+    set_vector_store(vector_store)
     return vector_store
 
 
@@ -171,9 +175,36 @@ def query_vector_store(
         list[tuple[Document, float]]: List of documents retrieved from the vector store that are similar to the provided query.
     """
     # Query the vector store
-    result = vector_store.similarity_search_with_score(query)
+    # Put k=1 to retrieve only the first doc found by similarity search
+    result = vector_store.similarity_search_with_score(query, k=1)
     logger.info(f"Retrieved {len(result)} documents from vector store")
     return result
+
+
+def set_vector_store(v_store: VectorStore) -> None:
+    global global_vector_store
+    global_vector_store = v_store
+
+
+# LangChain VectorStore objects do not subclass Runnable. LangChain Retrievers are Runnables, so they implement a standard set of methods
+# (e.g., synchronous and asynchronous invoke and batch operations).
+# Although we can construct retrievers from vector stores, retrievers can interface with non-vector store sources of data, as well (such as external APIs).
+@chain
+def retriever(query: str) -> list[Document]:
+    """
+    Retrieve documents from the vector store that are similar to the provided query.
+
+    Args:
+        query: Query to search the vector store.
+
+    Returns:
+        list[Document]: List of documents retrieved from the vector store that are similar to the provided query.
+    """
+    results = query_vector_store(global_vector_store, query)
+    # Print the retrieved documents
+    for doc, score in results:
+        logger.info(f"Score: {score}, Document ID: {doc.metadata['_id']}")
+    return [doc for doc, _ in results]
 
 
 def main():
@@ -204,16 +235,30 @@ def main():
     # Initialize embeddings model available in Ollama
     embeddings = OllamaEmbeddings(model=Config.EMBEDDING_MODEL)
     vector_store = get_vector_store(embeddings, Config.VECTOR_STORE_DOC_COLLECTION_NAME)
+
     add_docs_to_vector_store(vector_store, documents)
 
-    # Query the vector store
-    query = "When was Nike incorporated?"
-    results = query_vector_store(vector_store, query)
-    logger.info(f"Query: {query}")
-    logger.info(f"Retrieved {len(results)} documents")
-    # Print the retrieved documents
-    for doc, score in results:
-        logger.info(f"Score: {score}, Document: {doc.page_content}")
+    # --Query the vector store
+    # You can query directly in a synchronous way the vector store...
+    # query = "When was Nike incorporated?"
+    # # retrieved_docs = retriever.invoke(query)
+
+    # ...otherwise, you can use batch (with properly structured inputs)
+    queries = [
+        "How many distribution centers does Nike have in the US?",
+        "When was Nike incorporated?",
+    ]
+    batch_results = retriever.batch(queries)
+
+    # In case of usage of vector store (instead of for example, external API) we can construct retrievers directly using API exposed by vector stores
+    # retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 1})
+
+    # Print the results
+    for i, docs in enumerate(batch_results):
+        logger.info(f"Query: {queries[i]}")
+        logger.info(f"Batch result {i+1}: Retrieved {len(docs)} documents")
+        for doc in docs:
+            logger.info(f"Document: {doc.page_content}")
 
 
 if __name__ == "__main__":
