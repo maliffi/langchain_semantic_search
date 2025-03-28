@@ -69,7 +69,7 @@ This project relies on the following key dependencies:
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/maliffi/langchain_semantic_search.git
    cd langchain_semantic_search
    ```
 
@@ -166,7 +166,7 @@ The application uses Loguru for logging. Logs are stored in the `logs/` director
 
 ## License
 
-[Specify your license here]
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
